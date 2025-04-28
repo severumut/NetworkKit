@@ -1,5 +1,3 @@
-
-
 # NetworkKit
 
 NetworkKit is a lightweight, flexible, and modern Swift networking package built with Swift Concurrency and Protocol-Oriented Programming principles.
@@ -51,6 +49,7 @@ https://github.com/severumut/NetworkKit
 - ✅ Customizable Request body, query, and header handling
 - ✅ Centralized error management (`NetworkError`)
 - ✅ Lightweight and easy to integrate
+- ✅ Direct binary Data fetching (for non-JSON responses like audio, image files)
 
 ---
 
@@ -154,6 +153,53 @@ Task {
         print("Fetched Example: \(response)")
     case .failure(let error):
         print("Error: \(error.localizedDescription)")
+    }
+}
+```
+
+---
+
+## Example Implementation for Binary Data Fetching
+
+In addition to fetching and decoding JSON responses, NetworkKit now supports **direct binary data fetching** (such as audio, image, PDF files) without attempting to decode them.
+
+This is useful when the server returns non-JSON responses (e.g., OpenAI Speech-to-Text API returns MP3 audio files).
+
+### Define a Binary Service
+
+```swift
+public protocol BinaryServiceProtocol: Sendable {
+    func fetchBinaryData(request: ExampleRequest) async -> Result<Data, NetworkError>
+}
+
+public final class BinaryService: BinaryServiceProtocol {
+    
+    private let client: ClientProtocol
+    
+    public init(client: ClientProtocol = Client()) {
+        self.client = client
+    }
+    
+    public func fetchBinaryData(request: ExampleRequest) async -> Result<Data, NetworkError> {
+        return await client.fetchRaw(request: request)
+    }
+}
+```
+
+### Example Usage
+
+```swift
+let binaryService = BinaryService()
+
+Task {
+    let result = await binaryService.fetchBinaryData(request: .sample)
+    
+    switch result {
+    case .success(let data):
+        print("Binary data fetched. Size: \(data.count) bytes")
+        // You can now save the data to disk, play audio, show an image, etc.
+    case .failure(let error):
+        print("Error fetching binary data: \(error.localizedDescription)")
     }
 }
 ```
